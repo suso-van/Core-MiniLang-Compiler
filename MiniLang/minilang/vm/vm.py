@@ -1,0 +1,81 @@
+from minilang.compiler.bytecode import OpCode
+from minilang.vm.stack import Stack
+from minilang.runtime.environment import Environment
+
+
+class VirtualMachine:
+    def __init__(self, instructions):
+        self.instructions = instructions
+        self.stack = Stack()
+        self.env = Environment()
+        self.ip = 0  # instruction pointer
+
+    def run(self):
+        while self.ip < len(self.instructions):
+            instr = self.instructions[self.ip]
+            op = instr.opcode
+            arg = instr.operand
+
+            if op == OpCode.PUSH_CONST:
+                self.stack.push(arg)
+
+            elif op == OpCode.LOAD_VAR:
+                self.stack.push(self.env.load(arg))
+
+            elif op == OpCode.STORE_VAR:
+                val = self.stack.pop()
+                self.env.store(arg, val)
+
+            elif op == OpCode.ADD:
+                b = self.stack.pop()
+                a = self.stack.pop()
+                self.stack.push(a + b)
+
+            elif op == OpCode.SUB:
+                b = self.stack.pop()
+                a = self.stack.pop()
+                self.stack.push(a - b)
+
+            elif op == OpCode.MUL:
+                b = self.stack.pop()
+                a = self.stack.pop()
+                self.stack.push(a * b)
+
+            elif op == OpCode.DIV:
+                b = self.stack.pop()
+                a = self.stack.pop()
+                self.stack.push(a // b)
+
+            elif op == OpCode.PRINT:
+                val = self.stack.pop()
+                print(val)
+
+            elif op == OpCode.HALT:
+                break
+            elif op == OpCode.JUMP:
+                self.ip = arg
+                continue
+            elif op == OpCode.JUMP_IF_FALSE:
+                val = self.stack.pop()
+                if not val:
+                    self.ip = arg
+                    continue    
+            elif op == OpCode.LT:
+                b = self.stack.pop()
+                a = self.stack.pop()
+                self.stack.push(1 if a < b else 0)
+
+            elif op == OpCode.GT:
+                b = self.stack.pop()
+                a = self.stack.pop()
+                self.stack.push(1 if a > b else 0)
+
+            elif op == OpCode.EQ:
+                b = self.stack.pop()
+                a = self.stack.pop()
+                self.stack.push(1 if a == b else 0)
+
+            else:
+                raise Exception(f"Unknown opcode: {op}")
+
+            self.ip += 1

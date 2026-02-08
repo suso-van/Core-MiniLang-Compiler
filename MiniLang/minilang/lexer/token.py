@@ -23,12 +23,26 @@ class TokenType(Enum):
     SEMICOLON = auto()
 
     EOF = auto()
+    IF = auto()
+    ELSE = auto()
+    WHILE = auto()
+
+    LT = auto()
+    GT = auto()
+    EQ = auto()
+
+    LBRACE = auto()
+    RBRACE = auto()
 
 
 KEYWORDS = {
     "let": TokenType.LET,
     "print": TokenType.PRINT,
+    "if": TokenType.IF,
+    "else": TokenType.ELSE,
+    "while": TokenType.WHILE,
 }
+
 
 
 class Token:
@@ -39,5 +53,5 @@ class Token:
 
     def __repr__(self):
         return f"Token({self.type}, {self.value}, position={self.position})"
-        
+
     
