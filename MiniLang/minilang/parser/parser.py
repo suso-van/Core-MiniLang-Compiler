@@ -16,6 +16,12 @@ class Parser:
         else:
             raise Exception(f"Expected {token_type}, got {self.current.type}")
 
+    def match(self, token_type):
+        if self.current.type == token_type:
+            self.eat(token_type)
+            return True
+        return False
+
     # --------------------------------------------------
     # Entry
     # --------------------------------------------------
@@ -29,19 +35,28 @@ class Parser:
     # Statements
     # --------------------------------------------------
     def statement(self):
-        # let x = expr;
-        if self.current.type == TokenType.IDENT and self.current.value == "let":
+        if self.current.type == TokenType.LBRACE:
+            return self.block()
+        if self.current.type == TokenType.LET:
             return self.let_statement()
-
-        # print(expr);
-        if self.current.type == TokenType.IDENT and self.current.value == "print":
+        if self.current.type == TokenType.PRINT:
             return self.print_statement()
-
+        if self.match(TokenType.IF):
+            return self.if_statement()
+        if self.match(TokenType.WHILE):
+            return self.while_statement()
         raise Exception(f"Invalid statement near {self.current}")
 
+    def block(self):
+        self.eat(TokenType.LBRACE)
+        statements = []
+        while self.current.type != TokenType.RBRACE:
+            statements.append(self.statement())
+        self.eat(TokenType.RBRACE)
+        return Block(statements)
+        
     def let_statement(self):
-        self.eat(TokenType.IDENT)  # let
-
+        self.eat(TokenType.LET)
         name = self.current.value
         self.eat(TokenType.IDENT)
 
@@ -52,7 +67,7 @@ class Parser:
         return LetStatement(name, expr)
 
     def print_statement(self):
-        self.eat(TokenType.IDENT)  # print
+        self.eat(TokenType.PRINT)
         self.eat(TokenType.LPAREN)
         expr = self.expression()
         self.eat(TokenType.RPAREN)
@@ -60,9 +75,34 @@ class Parser:
 
         return PrintStatement(expr)
 
+    def if_statement(self):
+        self.eat(TokenType.LPAREN)
+        condition = self.comparison()
+        self.eat(TokenType.RPAREN)
+        then_branch = self.block() if self.current.type == TokenType.LBRACE else self.statement()
+        else_branch = None
+        if self.match(TokenType.ELSE):
+            else_branch = self.block() if self.current.type == TokenType.LBRACE else self.statement()
+        return If(condition, then_branch, else_branch)
+
+    def while_statement(self):
+        self.eat(TokenType.LPAREN)
+        condition = self.comparison()
+        self.eat(TokenType.RPAREN)
+        body = self.block() if self.current.type == TokenType.LBRACE else self.statement()
+        return While(condition, body)
+
     # --------------------------------------------------
     # Expressions
     # --------------------------------------------------
+    def comparison(self):
+        node = self.expression()
+        while self.current.type in (TokenType.LT, TokenType.GT, TokenType.EQ):
+            op = self.current
+            self.eat(op.type)
+            node = BinaryOp(node, op, self.expression())
+        return node
+
     def expression(self):
         node = self.term()
 

@@ -46,3 +46,8 @@ class While(Node):
     def __init__(self, condition, body):
         self.condition = condition
         self.body = body
+
+
+class Block(Node):
+    def __init__(self, statements):
+        self.statements = statements

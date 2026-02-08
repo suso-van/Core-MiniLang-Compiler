@@ -35,6 +35,26 @@ class ASTPrinter:
             self.print(node.left, indent + 1)
             self.print(node.right, indent + 1)
 
+        # ---------------- If ----------------
+        elif isinstance(node, If):
+            print(prefix + "If")
+            self.print(node.condition, indent + 1)
+            self.print(node.then_branch, indent + 1)
+            if node.else_branch:
+                self.print(node.else_branch, indent + 1)
+
+        # ---------------- While ----------------
+        elif isinstance(node, While):
+            print(prefix + "While")
+            self.print(node.condition, indent + 1)
+            self.print(node.body, indent + 1)
+
+        # ---------------- Block ----------------
+        elif isinstance(node, Block):
+            print(prefix + "Block")
+            for stmt in node.statements:
+                self.print(stmt, indent + 1)
+
         # ---------------- Unknown ----------------
         else:
             print(prefix + f"Unknown node: {type(node)}")

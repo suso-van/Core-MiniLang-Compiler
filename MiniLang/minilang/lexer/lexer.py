@@ -1,4 +1,4 @@
-from .token import Token, TokenType
+from .token import Token, TokenType, KEYWORDS
 
 
 class Lexer:
@@ -32,7 +32,8 @@ class Lexer:
             self.advance()
 
         value = self.text[start:self.pos]
-        return Token(TokenType.IDENT, value, start)
+        token_type = KEYWORDS.get(value, TokenType.IDENT)
+        return Token(token_type, value, start)
 
     def number(self):
         start = self.pos

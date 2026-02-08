@@ -89,6 +89,11 @@ class Compiler:
                 # Patch false jump → after then
                 self.instructions[jump_false_pos].operand = len(self.instructions)
 
+        # ================= Block =================
+        elif isinstance(node, Block):
+            for stmt in node.statements:
+                self.compile(stmt)
+
         # ================= While =================
         elif isinstance(node, While):
             loop_start = len(self.instructions)
