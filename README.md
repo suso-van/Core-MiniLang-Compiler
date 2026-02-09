@@ -89,7 +89,6 @@ while (i < 5) {
 ```
 
 ---
-
 ## Compiler Pipeline
 
 MiniLang follows real compiler architecture:
