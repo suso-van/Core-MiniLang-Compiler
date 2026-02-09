@@ -47,7 +47,6 @@ The project implements the complete compilation pipeline and supports variables,
 ---
 
 ## Project Structure
-
 ```
 MiniLang/
 │
@@ -62,7 +61,6 @@ MiniLang/
 ├── main.py
 └── README.md
 ```
-
 ---
 
 ## Example Program
