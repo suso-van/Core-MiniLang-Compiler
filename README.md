@@ -191,3 +191,7 @@ Ideal for:
 - Interview-level architecture preparation  
 
 ---
+
+## License
+
+MIT License
