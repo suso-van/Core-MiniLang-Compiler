@@ -1,15 +1,21 @@
-from .token import Token, TokenType, KEYWORDS
+from .token import Token, TokenType
+
+
+KEYWORDS = {
+    "let": TokenType.LET,
+    "print": TokenType.PRINT,
+    "if": TokenType.IF,
+    "else": TokenType.ELSE,
+    "while": TokenType.WHILE,
+}
 
 
 class Lexer:
-    def __init__(self, text: str):
+    def __init__(self, text):
         self.text = text
         self.pos = 0
         self.current = self.text[self.pos] if self.text else None
 
-    # --------------------------------------------------
-    # Core
-    # --------------------------------------------------
     def advance(self):
         self.pos += 1
         if self.pos >= len(self.text):
@@ -18,51 +24,40 @@ class Lexer:
             self.current = self.text[self.pos]
 
     def skip_whitespace(self):
-        while self.current is not None and self.current.isspace():
+        while self.current and self.current.isspace():
             self.advance()
 
-    # --------------------------------------------------
-    # Token generators
-    # --------------------------------------------------
     def identifier(self):
         start = self.pos
-        while self.current is not None and (
-            self.current.isalnum() or self.current == "_"
-        ):
+        value = ""
+        while self.current and (self.current.isalnum() or self.current == "_"):
+            value += self.current
             self.advance()
 
-        value = self.text[start:self.pos]
         token_type = KEYWORDS.get(value, TokenType.IDENT)
         return Token(token_type, value, start)
 
     def number(self):
         start = self.pos
-        while self.current is not None and self.current.isdigit():
+        value = ""
+        while self.current and self.current.isdigit():
+            value += self.current
             self.advance()
+        return Token(TokenType.NUMBER, int(value), start)
 
-        value = self.text[start:self.pos]
-        return Token(TokenType.NUMBER, value, start)
-
-    # --------------------------------------------------
-    # Main lexer
-    # --------------------------------------------------
     def next_token(self):
-        while self.current is not None:
+        while self.current:
 
-            # Skip whitespace
             if self.current.isspace():
                 self.skip_whitespace()
                 continue
 
-            # Identifiers
             if self.current.isalpha() or self.current == "_":
                 return self.identifier()
 
-            # Numbers
             if self.current.isdigit():
                 return self.number()
 
-            # Operators
             if self.current == "+":
                 self.advance()
                 return Token(TokenType.PLUS, "+", self.pos)
@@ -99,7 +94,6 @@ class Lexer:
                 self.advance()
                 return Token(TokenType.SEMICOLON, ";", self.pos)
 
-            # Assignment / Equality
             if self.current == "=":
                 self.advance()
                 if self.current == "=":

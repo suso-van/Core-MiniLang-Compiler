@@ -45,7 +45,19 @@ class Parser:
             return self.if_statement()
         if self.match(TokenType.WHILE):
             return self.while_statement()
+        elif self.current.type == TokenType.IDENT:
+            # Could be assignment: x = expr;
+            name = self.current.value
+            self.eat(TokenType.IDENT)
+
+            if self.current.type == TokenType.ASSIGN:
+               self.eat(TokenType.ASSIGN)
+               expr = self.expression()
+               self.eat(TokenType.SEMICOLON)
+               return AssignStatement(name, expr)
+
         raise Exception(f"Invalid statement near {self.current}")
+
 
     def block(self):
         self.eat(TokenType.LBRACE)
@@ -83,14 +95,15 @@ class Parser:
         else_branch = None
         if self.match(TokenType.ELSE):
             else_branch = self.block() if self.current.type == TokenType.LBRACE else self.statement()
-        return If(condition, then_branch, else_branch)
+        return IfStatement(condition, then_branch, else_branch)
 
     def while_statement(self):
         self.eat(TokenType.LPAREN)
         condition = self.comparison()
         self.eat(TokenType.RPAREN)
         body = self.block() if self.current.type == TokenType.LBRACE else self.statement()
-        return While(condition, body)
+        return WhileStatement(condition, body)
+
 
     # --------------------------------------------------
     # Expressions

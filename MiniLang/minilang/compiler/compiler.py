@@ -67,7 +67,7 @@ class Compiler:
                 raise Exception(f"Unsupported binary operator: {op}")
 
         # ================= If =================
-        elif isinstance(node, If):
+        elif isinstance(node, IfStatement):
             self.compile(node.condition)
 
             jump_false_pos = len(self.instructions)
@@ -95,7 +95,7 @@ class Compiler:
                 self.compile(stmt)
 
         # ================= While =================
-        elif isinstance(node, While):
+        elif isinstance(node, WhileStatement):
             loop_start = len(self.instructions)
 
             self.compile(node.condition)
@@ -109,6 +109,11 @@ class Compiler:
 
             # Patch false jump → after loop
             self.instructions[jump_false_pos].operand = len(self.instructions)
+        
+        elif isinstance(node, AssignStatement):
+            self.compile(node.value)
+            self.emit(OpCode.STORE_VAR, node.name)
+
 
         # ================= Unknown =================
         else:

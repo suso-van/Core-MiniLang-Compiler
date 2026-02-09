@@ -1,57 +1,44 @@
-from enum import Enum, auto
+from enum import Enum
 
 
 class TokenType(Enum):
-    # Keywords
-    LET = auto()
-    PRINT = auto()
+    # literals / identifiers
+    IDENT = "IDENT"
+    NUMBER = "NUMBER"
 
-    # Identifiers / literals
-    IDENT = auto()
-    NUMBER = auto()
+    # keywords
+    LET = "LET"
+    PRINT = "PRINT"
+    IF = "IF"
+    ELSE = "ELSE"
+    WHILE = "WHILE"
 
-    # Operators
-    PLUS = auto()
-    MINUS = auto()
-    MUL = auto()
-    DIV = auto()
-    ASSIGN = auto()
+    # operators
+    PLUS = "+"
+    MINUS = "-"
+    MUL = "*"
+    DIV = "/"
 
-    # Symbols
-    LPAREN = auto()
-    RPAREN = auto()
-    SEMICOLON = auto()
+    ASSIGN = "="
+    EQ = "=="
+    LT = "<"
+    GT = ">"
 
-    EOF = auto()
-    IF = auto()
-    ELSE = auto()
-    WHILE = auto()
+    # symbols
+    LPAREN = "("
+    RPAREN = ")"
+    LBRACE = "{"
+    RBRACE = "}"
+    SEMICOLON = ";"
 
-    LT = auto()
-    GT = auto()
-    EQ = auto()
-
-    LBRACE = auto()
-    RBRACE = auto()
-
-
-KEYWORDS = {
-    "let": TokenType.LET,
-    "print": TokenType.PRINT,
-    "if": TokenType.IF,
-    "else": TokenType.ELSE,
-    "while": TokenType.WHILE,
-}
-
+    EOF = "EOF"
 
 
 class Token:
-    def __init__(self, type_, value=None, position=0):
+    def __init__(self, type_, value, position):
         self.type = type_
         self.value = value
         self.position = position
 
     def __repr__(self):
         return f"Token({self.type}, {self.value}, position={self.position})"
-
-    
