@@ -1,0 +1,76 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.env/
+.venv/
+ENV/
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy / type check
+.mypy_cache/
+.dmypy.json
+
+# logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Bytecode / temp
+*.out
+*.tmp
+*.bak
+
+# Runtime / generated files
+data/
+*.db
+*.sqlite
+*.wal
+
+# Mac
+.AppleDouble
+.LSOverride
+
+# Coverage / testing
+.cache/
+nosetests.xml
+coverage.xml
+
+# CLI / build artifacts
+bin/
+lib/
+
+# Compiled bytecode (MiniLang VM output if saved)
+*.bytecode
+*.bc
+
+# Environment configs (keep private)
+.env.local
+.env.production
+
+# Git
+*.orig
