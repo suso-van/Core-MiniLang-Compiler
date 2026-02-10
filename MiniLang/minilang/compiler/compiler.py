@@ -158,3 +158,5 @@ class Compiler:
             raise Exception(f"Unknown AST node: {type(node)}")
 
         return self.instructions
+
+
