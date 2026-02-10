@@ -112,3 +112,4 @@ class VirtualMachine:
                 raise Exception(f"Unknown opcode: {op}")
 
             self.ip += 1
+
