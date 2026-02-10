@@ -6,6 +6,7 @@ from .bytecode import OpCode, Instruction
 class Compiler:
     def __init__(self):
         self.instructions = []
+        self.functions = {}
 
     # --------------------------------------------------
     # Emit instruction
@@ -26,6 +27,11 @@ class Compiler:
 
         # ================= Let =================
         elif isinstance(node, LetStatement):
+            self.compile(node.value)
+            self.emit(OpCode.STORE_VAR, node.name)
+
+        # ================= Assign =================
+        elif isinstance(node, AssignStatement):
             self.compile(node.value)
             self.emit(OpCode.STORE_VAR, node.name)
 
@@ -64,7 +70,7 @@ class Compiler:
             elif op == TokenType.EQ:
                 self.emit(OpCode.EQ)
             else:
-                raise Exception(f"Unsupported binary operator: {op}")
+                raise Exception(f"Unsupported operator: {op}")
 
         # ================= If =================
         elif isinstance(node, IfStatement):
@@ -79,14 +85,13 @@ class Compiler:
                 jump_end_pos = len(self.instructions)
                 self.emit(OpCode.JUMP, None)
 
-                # Patch false jump → else start
+                # patch false jump → else
                 self.instructions[jump_false_pos].operand = len(self.instructions)
                 self.compile(node.else_branch)
 
-                # Patch end jump → after else
+                # patch end jump → after else
                 self.instructions[jump_end_pos].operand = len(self.instructions)
             else:
-                # Patch false jump → after then
                 self.instructions[jump_false_pos].operand = len(self.instructions)
 
         # ================= Block =================
@@ -104,16 +109,49 @@ class Compiler:
             self.emit(OpCode.JUMP_IF_FALSE, None)
 
             self.compile(node.body)
-
             self.emit(OpCode.JUMP, loop_start)
 
-            # Patch false jump → after loop
+            # patch false jump → after loop
             self.instructions[jump_false_pos].operand = len(self.instructions)
-        
-        elif isinstance(node, AssignStatement):
-            self.compile(node.value)
-            self.emit(OpCode.STORE_VAR, node.name)
 
+        # ================= Function Definition =================
+        elif isinstance(node, FunctionDef):
+            func_start = len(self.instructions)
+            self.functions[node.name] = func_start
+
+            # mark function entry
+            self.emit(OpCode.FUNC_START, None)
+
+            # store parameters (pop from stack)
+            for param in reversed(node.params):
+                self.emit(OpCode.STORE_VAR, param)
+
+            for stmt in node.body.statements:
+                self.compile(stmt)
+
+            # default return 0
+            self.emit(OpCode.PUSH_CONST, 0)
+            self.emit(OpCode.RETURN)
+
+            # patch FUNC_START skip address
+            self.instructions[func_start].operand = len(self.instructions)
+
+        # ================= Return =================
+        elif isinstance(node, ReturnStatement):
+            self.compile(node.value)
+            self.emit(OpCode.RETURN)
+
+        # ================= Function Call =================
+        elif isinstance(node, CallExpression):
+            # push args
+            for arg in node.args:
+                self.compile(arg)
+
+            if node.name not in self.functions:
+                raise Exception(f"Undefined function: {node.name}")
+
+            # jump to FUNC_START
+            self.emit(OpCode.CALL, self.functions[node.name])
 
         # ================= Unknown =================
         else:

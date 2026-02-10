@@ -59,6 +59,14 @@ class ASTPrinter:
             print(prefix + f"AssignStatement: {node.name}")
             self.print(node.value, indent + 1)
             
+        elif isinstance(node, FunctionDef):
+            print(prefix + f"FunctionDef: {node.name}({', '.join(node.params)})")
+            self.print(node.body, indent + 1)
+
+        elif isinstance(node, CallExpression):
+            print(prefix + f"Call: {node.name}")
+            for arg in node.args:
+               self.print(arg, indent + 1)
 
         # ---------------- Unknown ----------------
         else:

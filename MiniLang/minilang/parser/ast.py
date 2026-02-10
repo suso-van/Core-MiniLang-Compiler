@@ -52,3 +52,20 @@ class AssignStatement:
     def __init__(self, name, value):
         self.name = name
         self.value = value
+
+class FunctionDef:
+    def __init__(self, name, params, body):
+        self.name = name
+        self.params = params
+        self.body = body
+
+
+class ReturnStatement:
+    def __init__(self, value):
+        self.value = value
+
+
+class CallExpression:
+    def __init__(self, name, args):
+        self.name = name
+        self.args = args

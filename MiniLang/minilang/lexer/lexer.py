@@ -7,7 +7,10 @@ KEYWORDS = {
     "if": TokenType.IF,
     "else": TokenType.ELSE,
     "while": TokenType.WHILE,
+    "fn": TokenType.FN,
+    "return": TokenType.RETURN,
 }
+
 
 
 class Lexer:
@@ -104,6 +107,11 @@ class Lexer:
             if self.current == "<":
                 self.advance()
                 return Token(TokenType.LT, "<", self.pos)
+            
+            if self.current == ",":
+                self.advance()
+                return Token(TokenType.COMMA, ",", self.pos)
+
 
             if self.current == ">":
                 self.advance()

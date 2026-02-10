@@ -32,6 +32,11 @@ class TokenType(Enum):
     SEMICOLON = ";"
 
     EOF = "EOF"
+    
+    FN = "FN"
+    RETURN = "RETURN"
+    COMMA = "COMMA"
+
 
 
 class Token:

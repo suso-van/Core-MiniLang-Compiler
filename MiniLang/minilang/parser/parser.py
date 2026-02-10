@@ -45,6 +45,13 @@ class Parser:
             return self.if_statement()
         if self.match(TokenType.WHILE):
             return self.while_statement()
+        
+        elif self.current.type == TokenType.FN:
+            return self.function_def()
+
+        elif self.current.type == TokenType.RETURN:
+            return self.return_statement()
+
         elif self.current.type == TokenType.IDENT:
             # Could be assignment: x = expr;
             name = self.current.value
@@ -69,14 +76,19 @@ class Parser:
         
     def let_statement(self):
         self.eat(TokenType.LET)
+
         name = self.current.value
         self.eat(TokenType.IDENT)
 
         self.eat(TokenType.ASSIGN)
+
+    # IMPORTANT: allow function call / expression / binary / number
         expr = self.expression()
+
         self.eat(TokenType.SEMICOLON)
 
         return LetStatement(name, expr)
+
 
     def print_statement(self):
         self.eat(TokenType.PRINT)
@@ -116,41 +128,88 @@ class Parser:
             node = BinaryOp(node, op, self.expression())
         return node
 
+    def term(self):
+       node = self.factor()
+
+       while self.current.type in (TokenType.MUL, TokenType.DIV):
+          op = self.current
+          self.eat(op.type)
+          node = BinaryOp(node, op, self.factor())
+
+       return node
+
+
     def expression(self):
         node = self.term()
 
-        while self.current.type in (TokenType.PLUS, TokenType.MINUS):
+        while self.current.type in (
+            TokenType.PLUS, TokenType.MINUS,
+            TokenType.LT, TokenType.GT, TokenType.EQ
+    ):
             op = self.current
             self.eat(op.type)
             node = BinaryOp(node, op, self.term())
 
         return node
 
-    def term(self):
-        node = self.factor()
+    
+    def function_def(self):
+        self.eat(TokenType.FN)
 
-        while self.current.type in (TokenType.MUL, TokenType.DIV):
-            op = self.current
-            self.eat(op.type)
-            node = BinaryOp(node, op, self.factor())
+        name = self.current.value
+        self.eat(TokenType.IDENT)
 
-        return node
+        self.eat(TokenType.LPAREN)
+
+        params = []
+        if self.current.type != TokenType.RPAREN:
+            params.append(self.current.value)
+            self.eat(TokenType.IDENT)
+
+            while self.current.type == TokenType.COMMA:
+                self.eat(TokenType.COMMA)
+                params.append(self.current.value)
+                self.eat(TokenType.IDENT)
+
+        self.eat(TokenType.RPAREN)
+
+        body = self.block()
+
+        return FunctionDef(name, params, body)
+    
+    def return_statement(self):
+        self.eat(TokenType.RETURN)
+        expr = self.expression()
+        self.eat(TokenType.SEMICOLON)
+        return ReturnStatement(expr)
+
 
     def factor(self):
         token = self.current
-
         if token.type == TokenType.NUMBER:
             self.eat(TokenType.NUMBER)
-            return Number(int(token.value))
-
-        if token.type == TokenType.IDENT:
+            return Number(token.value)
+        elif token.type == TokenType.IDENT:
+            name = token.value
             self.eat(TokenType.IDENT)
-            return Identifier(token.value)
-
-        if token.type == TokenType.LPAREN:
+            if self.current.type == TokenType.LPAREN:
+                self.eat(TokenType.LPAREN)
+                args = []
+                if self.current.type != TokenType.RPAREN:
+                    args.append(self.expression())
+                    while self.current.type == TokenType.COMMA:
+                        self.eat(TokenType.COMMA)
+                        args.append(self.expression())
+                self.eat(TokenType.RPAREN)
+                return CallExpression(name, args)
+            return Identifier(name)
+        
+    # (expression)
+        elif token.type == TokenType.LPAREN:
             self.eat(TokenType.LPAREN)
             node = self.expression()
             self.eat(TokenType.RPAREN)
             return node
 
-        raise Exception("Invalid expression")
+        else:
+          raise Exception(f"Unexpected token: {token}")

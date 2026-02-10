@@ -141,3 +141,17 @@ while (i < 5) {
 }
 """
 run(code_combined, "COMBINED CONTROL FLOW")
+
+print("\n===== FUNCTION TEST =====")
+
+code_func = """
+fn add(a, b) {
+    return a + b;
+}
+
+let result = add(5, 7);
+print(result);
+"""
+
+run(code_func, "FUNCTION CALL")
+

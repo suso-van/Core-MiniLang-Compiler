@@ -17,6 +17,13 @@ class OpCode(Enum):
     LT = auto()
     GT = auto()
     EQ = auto()
+    
+    CALL = "CALL"
+    RETURN = "RETURN"
+    FUNC_START = "FUNC_START"
+    FUNC_END = "FUNC_END"
+    PARAM = "PARAM"
+ 
 
 class Instruction:
     def __init__(self, opcode, operand=None):
