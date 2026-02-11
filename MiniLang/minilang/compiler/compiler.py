@@ -15,7 +15,7 @@ class Compiler:
         self.instructions.append(Instruction(opcode, operand))
 
     # --------------------------------------------------
-    # Compile dispatcher
+    # Main compile entry
     # --------------------------------------------------
     def compile(self, node):
 
@@ -24,6 +24,12 @@ class Compiler:
             for stmt in node.statements:
                 self.compile(stmt)
             self.emit(OpCode.HALT)
+            return self.instructions, self.functions
+
+        # ================= BLOCK =================
+        elif isinstance(node, Block):
+            for stmt in node.statements:
+                self.compile(stmt)
 
         # ================= LET =================
         elif isinstance(node, LetStatement):
@@ -44,7 +50,7 @@ class Compiler:
         elif isinstance(node, Number):
             self.emit(OpCode.PUSH_CONST, node.value)
 
-        # ================= IDENTIFIER =================
+        # ================= IDENT =================
         elif isinstance(node, Identifier):
             self.emit(OpCode.LOAD_VAR, node.name)
 
@@ -53,103 +59,96 @@ class Compiler:
             self.compile(node.left)
             self.compile(node.right)
 
-            t = node.op.type
-            if t == TokenType.PLUS:
+            if node.op.type == TokenType.PLUS:
                 self.emit(OpCode.ADD)
-            elif t == TokenType.MINUS:
+            elif node.op.type == TokenType.MINUS:
                 self.emit(OpCode.SUB)
-            elif t == TokenType.MUL:
+            elif node.op.type == TokenType.MUL:
                 self.emit(OpCode.MUL)
-            elif t == TokenType.DIV:
+            elif node.op.type == TokenType.DIV:
                 self.emit(OpCode.DIV)
-            elif t == TokenType.LT:
+            elif node.op.type == TokenType.LT:
                 self.emit(OpCode.LT)
-            elif t == TokenType.GT:
+            elif node.op.type == TokenType.GT:
                 self.emit(OpCode.GT)
-            elif t == TokenType.EQ:
+            elif node.op.type == TokenType.EQ:
                 self.emit(OpCode.EQ)
-            else:
-                raise Exception("Unsupported binary operator")
-
-        # ================= BLOCK =================
-        elif isinstance(node, Block):
-            for stmt in node.statements:
-                self.compile(stmt)
 
         # ================= IF =================
         elif isinstance(node, IfStatement):
             self.compile(node.condition)
 
-            jf = len(self.instructions)
+            jfalse = len(self.instructions)
             self.emit(OpCode.JUMP_IF_FALSE, None)
 
             self.compile(node.then_branch)
 
             if node.else_branch:
-                je = len(self.instructions)
+                jend = len(self.instructions)
                 self.emit(OpCode.JUMP, None)
 
-                self.instructions[jf].operand = len(self.instructions)
+                self.instructions[jfalse].operand = len(self.instructions)
                 self.compile(node.else_branch)
-                self.instructions[je].operand = len(self.instructions)
+                self.instructions[jend].operand = len(self.instructions)
             else:
-                self.instructions[jf].operand = len(self.instructions)
+                self.instructions[jfalse].operand = len(self.instructions)
 
         # ================= WHILE =================
         elif isinstance(node, WhileStatement):
             start = len(self.instructions)
+
             self.compile(node.condition)
 
-            jf = len(self.instructions)
+            jfalse = len(self.instructions)
             self.emit(OpCode.JUMP_IF_FALSE, None)
 
             self.compile(node.body)
             self.emit(OpCode.JUMP, start)
 
-            self.instructions[jf].operand = len(self.instructions)
+            self.instructions[jfalse].operand = len(self.instructions)
 
         # ================= FUNCTION DEF =================
         elif isinstance(node, FunctionDef):
-            func_entry = len(self.instructions)
-            self.functions[node.name] = func_entry
+            func_start = len(self.instructions)
 
-            # Skip function body in normal execution
+            # Store function entry in table
+            self.functions[node.name] = (func_start, node.params)
+
+            # FUNC_START placeholder → will patch end addr
             self.emit(OpCode.FUNC_START, None)
 
-            # Bind parameters (pop args into variables)
-            for param in reversed(node.params):
-                self.emit(OpCode.STORE_VAR, param)
+            # STORE params (reverse because stack order)
+            for p in reversed(node.params):
+                self.emit(OpCode.STORE_VAR, p)
 
             # Compile body
-            self.compile(node.body)
+            for stmt in node.body.statements:
+                self.compile(stmt)
 
             # Default return 0 if no explicit return
             self.emit(OpCode.PUSH_CONST, 0)
             self.emit(OpCode.RETURN)
 
-            # Patch skip address
-            self.instructions[func_entry].operand = len(self.instructions)
+            # Patch FUNC_START operand → function end
+            self.instructions[func_start].operand = len(self.instructions)
 
         # ================= RETURN =================
         elif isinstance(node, ReturnStatement):
             self.compile(node.value)
             self.emit(OpCode.RETURN)
 
-        # ================= CALL =================
+        # ================= FUNCTION CALL =================
         elif isinstance(node, CallExpression):
-            if node.name not in self.functions:
-                raise Exception(f"Undefined function: {node.name}")
-
-            # Push arguments
             for arg in node.args:
                 self.compile(arg)
 
-            func_addr = self.functions[node.name]
-            argc = len(node.args)
+            if node.name not in self.functions:
+                raise Exception(f"Undefined function: {node.name}")
 
-            self.emit(OpCode.CALL, (func_addr, argc))
+            func_addr, params = self.functions[node.name]
+
+            # IMPORTANT → ONLY (addr, argc)
+            self.emit(OpCode.CALL, (func_addr, len(node.args)))
 
         else:
             raise Exception(f"Unknown AST node: {type(node)}")
-
-        return self.instructions

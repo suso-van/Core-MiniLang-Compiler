@@ -2,12 +2,13 @@ from minilang.lexer.lexer import Lexer
 from minilang.parser.parser import Parser
 from minilang.parser.ast_printer import ASTPrinter
 from minilang.compiler.compiler import Compiler
+from minilang.compiler.optimizer import Optimizer
 from minilang.vm.vm import VirtualMachine
 from minilang.semantic.semantic_analyzer import SemanticAnalyzer
 
 
 # ============================================================
-# Helper: Run full pipeline
+# FULL PIPELINE
 # ============================================================
 
 def run(code, title):
@@ -22,12 +23,16 @@ def run(code, title):
         if tok.type.name == "EOF":
             break
 
-    # ---------- AST ----------
+    # ---------- PARSE ----------
     print("\n--- AST ---")
-    lexer = Lexer(code)              # NEW lexer for parser
-    parser = Parser(lexer)           # PASS LEXER (not tokens)
+    lexer = Lexer(code)
+    parser = Parser(lexer)
     ast = parser.parse()
     ASTPrinter().print(ast)
+
+    # ---------- OPTIMIZER ----------
+    optimizer = Optimizer()
+    ast = optimizer.optimize(ast)
 
     # ---------- SEMANTIC ----------
     semantic = SemanticAnalyzer()
@@ -37,16 +42,18 @@ def run(code, title):
         print("\nSemantic Error:", e)
         return
 
-    # ---------- BYTECODE ----------
+    # ---------- COMPILE ----------
     print("\n--- BYTECODE ---")
     compiler = Compiler()
-    bytecode = compiler.compile(ast)
+    bytecode, functions = compiler.compile(ast)
+
     for i, instr in enumerate(bytecode):
         print(f"{i}: {instr}")
 
     # ---------- VM ----------
     print("\n--- VM OUTPUT ---")
     vm = VirtualMachine(bytecode)
+
     vm.run()
 
 
@@ -54,65 +61,32 @@ def run(code, title):
 # BASIC PROGRAM
 # ============================================================
 
-code_basic = """
+run("""
 let x = 5;
 let y = 10;
 print(x + y);
-"""
-run(code_basic, "BASIC PROGRAM")
-
-
-# ============================================================
-# USE BEFORE DECLARATION
-# ============================================================
-
-print("\n===== USE BEFORE DECLARATION =====")
-code_error1 = "print(x);"
-try:
-    parser = Parser(Lexer(code_error1))
-    ast = parser.parse()
-    SemanticAnalyzer().analyze(ast)
-except Exception as e:
-    print(e)
-
-
-# ============================================================
-# DUPLICATE VARIABLE
-# ============================================================
-
-print("\n===== DUPLICATE VARIABLE =====")
-code_error2 = """
-let x = 5;
-let x = 10;
-"""
-try:
-    parser = Parser(Lexer(code_error2))
-    ast = parser.parse()
-    SemanticAnalyzer().analyze(ast)
-except Exception as e:
-    print(e)
+""", "BASIC PROGRAM")
 
 
 # ============================================================
 # WHILE LOOP
 # ============================================================
 
-code_while = """
+run("""
 let x = 0;
 
 while (x < 5) {
     print(x);
     x = x + 1;
 }
-"""
-run(code_while, "WHILE LOOP (0..4)")
+""", "WHILE LOOP (0..4)")
 
 
 # ============================================================
 # IF / ELSE
 # ============================================================
 
-code_if = """
+run("""
 let a = 10;
 
 if (a > 5) {
@@ -120,15 +94,14 @@ if (a > 5) {
 } else {
     print(200);
 }
-"""
-run(code_if, "IF / ELSE")
+""", "IF / ELSE")
 
 
 # ============================================================
 # COMBINED CONTROL FLOW
 # ============================================================
 
-code_combined = """
+run("""
 let i = 0;
 
 while (i < 5) {
@@ -139,77 +112,32 @@ while (i < 5) {
     }
     i = i + 1;
 }
-"""
-run(code_combined, "COMBINED CONTROL FLOW")
+""", "COMBINED CONTROL FLOW")
 
-print("\n===== FUNCTION TEST =====")
 
-code_func = """
+# ============================================================
+# FUNCTION CALL
+# ============================================================
+
+run("""
 fn add(a, b) {
     return a + b;
 }
 
 let result = add(5, 7);
 print(result);
-"""
-
-run(code_func, "FUNCTION CALL")
-
-print("\n===== RECURSION TEST =====")
-
-code_rec = """
-fn fact(n) {
-    if (n == 0) { return 1; }
-    return n * fact(n - 1);
-}
-
-print(fact(5));
-"""
-
-run(code_rec, "RECURSION")
-
-from minilang.lexer.lexer import Lexer
-from minilang.parser.parser import Parser
-from minilang.parser.ast_printer import ASTPrinter
-from minilang.compiler.compiler import Compiler
-from minilang.compiler.optimizer import Optimizer
-from minilang.vm.vm import VirtualMachine
-from minilang.semantic.semantic_analyzer import SemanticAnalyzer
+""", "FUNCTION CALL")
 
 
-def run(code, title):
-    print(f"\n===== {title} =====")
+# ============================================================
+# RECURSION
+# ============================================================
 
-    lexer = Lexer(code)
-    parser = Parser(lexer)
-    ast = parser.parse()
-
-    optimizer = Optimizer()
-    ast = optimizer.optimize(ast)
-
-    semantic = SemanticAnalyzer()
-    semantic.analyze(ast)
-
-    compiler = Compiler()
-    bytecode = compiler.compile(ast)
-
-    vm = VirtualMachine(bytecode)
-    vm.run()
-
-
-# ---------- BASIC ----------
-run("""
-let x = 5;
-let y = 10;
-print(x + y);
-""", "BASIC")
-
-# ---------- RECURSION ----------
 run("""
 fn fact(n) {
     if (n == 0) { return 1; }
     return n * fact(n - 1);
 }
+
 print(fact(5));
 """, "RECURSION")
-

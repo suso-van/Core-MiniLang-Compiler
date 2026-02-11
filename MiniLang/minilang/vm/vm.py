@@ -2,30 +2,37 @@ from minilang.compiler.bytecode import OpCode
 
 
 class VirtualMachine:
-    def __init__(self, instructions):
-        self.instructions = instructions
+    def __init__(self, bytecode):
+        self.bytecode = bytecode
         self.stack = []
-        self.globals = {}
-        self.call_stack = []   # stores return addresses
-        self.ip = 0
+        self.vars = {}
+        self.call_stack = []
+        self.ip = 0  # instruction pointer
 
+    # -----------------------------------------------------
+    # RUN
+    # -----------------------------------------------------
     def run(self):
-        while self.ip < len(self.instructions):
-            instr = self.instructions[self.ip]
+        while self.ip < len(self.bytecode):
+            instr = self.bytecode[self.ip]
             op = instr.opcode
+            arg = instr.operand
 
-            # ================= STACK OPS =================
+            # ---------------- PUSH CONST ----------------
             if op == OpCode.PUSH_CONST:
-                self.stack.append(instr.operand)
+                self.stack.append(arg)
 
+            # ---------------- LOAD VAR ----------------
             elif op == OpCode.LOAD_VAR:
-                self.stack.append(self.globals.get(instr.operand, 0))
+                self.stack.append(self.vars.get(arg, 0))
 
+            # ---------------- STORE VAR ----------------
             elif op == OpCode.STORE_VAR:
-                val = self.stack.pop()
-                self.globals[instr.operand] = val
+                if not self.stack:
+                    raise RuntimeError("Stack underflow on STORE_VAR")
+                self.vars[arg] = self.stack.pop()
 
-            # ================= ARITH =================
+            # ---------------- ARITH ----------------
             elif op == OpCode.ADD:
                 b = self.stack.pop()
                 a = self.stack.pop()
@@ -46,7 +53,7 @@ class VirtualMachine:
                 a = self.stack.pop()
                 self.stack.append(a // b)
 
-            # ================= COMPARE =================
+            # ---------------- COMPARE ----------------
             elif op == OpCode.LT:
                 b = self.stack.pop()
                 a = self.stack.pop()
@@ -62,62 +69,59 @@ class VirtualMachine:
                 a = self.stack.pop()
                 self.stack.append(1 if a == b else 0)
 
-            # ================= PRINT =================
+            # ---------------- PRINT ----------------
             elif op == OpCode.PRINT:
                 print(self.stack.pop())
 
-            # ================= JUMPS =================
+            # ---------------- JUMP ----------------
             elif op == OpCode.JUMP:
-                self.ip = instr.operand
+                self.ip = arg
                 continue
 
+            # ---------------- JUMP IF FALSE ----------------
             elif op == OpCode.JUMP_IF_FALSE:
-                val = self.stack.pop()
-                if not val:
-                    self.ip = instr.operand
+                cond = self.stack.pop()
+                if cond == 0:
+                    self.ip = arg
                     continue
 
-            # ================= FUNCTION SYSTEM =================
-
-            # Skip function body during normal execution
+            # ---------------- FUNCTION START ----------------
             elif op == OpCode.FUNC_START:
-                self.ip = instr.operand
+                # Skip function body during normal execution
+                self.ip = arg
                 continue
 
-            # CALL (func_addr, argc)
+            # ---------------- CALL ----------------
             elif op == OpCode.CALL:
-                func_addr, argc = instr.operand
+                func_addr, argc = arg
 
-                # Save return address
-                self.call_stack.append(self.ip + 1)
-
-                # Pop arguments
+                # collect args
                 args = [self.stack.pop() for _ in range(argc)][::-1]
 
-                # Push args back (stack-based parameter passing)
-                for val in args:
-                    self.stack.append(val)
+                # save return address
+                self.call_stack.append(self.ip + 1)
 
-                # Jump to function start
+                # push args back for STORE_VAR in function
+                for v in args:
+                    self.stack.append(v)
+
+                # jump to function
                 self.ip = func_addr + 1
                 continue
 
-            # RETURN
+            # ---------------- RETURN ----------------
             elif op == OpCode.RETURN:
-                ret_val = self.stack.pop() if self.stack else 0
-
                 if not self.call_stack:
                     return
-
                 self.ip = self.call_stack.pop()
-                self.stack.append(ret_val)
                 continue
 
-            # ================= HALT =================
+            # ---------------- HALT ----------------
             elif op == OpCode.HALT:
                 break
 
+            # ---------------- UNKNOWN ----------------
             else:
-                raise Exception(f"Unknown opcode: {op}")
+                raise RuntimeError(f"Unknown opcode {op}")
 
             self.ip += 1
