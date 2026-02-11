@@ -6,7 +6,7 @@ class VirtualMachine:
         self.instructions = instructions
         self.stack = []
         self.globals = {}
-        self.call_stack = []
+        self.call_stack = []   # stores return addresses
         self.ip = 0
 
     def run(self):
@@ -14,7 +14,7 @@ class VirtualMachine:
             instr = self.instructions[self.ip]
             op = instr.opcode
 
-            # ---------------- PUSH ----------------
+            # ================= STACK OPS =================
             if op == OpCode.PUSH_CONST:
                 self.stack.append(instr.operand)
 
@@ -25,7 +25,7 @@ class VirtualMachine:
                 val = self.stack.pop()
                 self.globals[instr.operand] = val
 
-            # ---------------- ARITH ----------------
+            # ================= ARITH =================
             elif op == OpCode.ADD:
                 b = self.stack.pop()
                 a = self.stack.pop()
@@ -46,7 +46,7 @@ class VirtualMachine:
                 a = self.stack.pop()
                 self.stack.append(a // b)
 
-            # ---------------- COMPARE ----------------
+            # ================= COMPARE =================
             elif op == OpCode.LT:
                 b = self.stack.pop()
                 a = self.stack.pop()
@@ -62,11 +62,11 @@ class VirtualMachine:
                 a = self.stack.pop()
                 self.stack.append(1 if a == b else 0)
 
-            # ---------------- PRINT ----------------
+            # ================= PRINT =================
             elif op == OpCode.PRINT:
                 print(self.stack.pop())
 
-            # ---------------- JUMPS ----------------
+            # ================= JUMPS =================
             elif op == OpCode.JUMP:
                 self.ip = instr.operand
                 continue
@@ -77,23 +77,32 @@ class VirtualMachine:
                     self.ip = instr.operand
                     continue
 
-            # ================= FUNCTION SUPPORT =================
+            # ================= FUNCTION SYSTEM =================
 
-            # Skip function body in normal flow
+            # Skip function body during normal execution
             elif op == OpCode.FUNC_START:
                 self.ip = instr.operand
                 continue
 
-            # Function call
+            # CALL (func_addr, argc)
             elif op == OpCode.CALL:
+                func_addr, argc = instr.operand
+
                 # Save return address
                 self.call_stack.append(self.ip + 1)
 
+                # Pop arguments
+                args = [self.stack.pop() for _ in range(argc)][::-1]
+
+                # Push args back (stack-based parameter passing)
+                for val in args:
+                    self.stack.append(val)
+
                 # Jump to function start
-                self.ip = instr.operand + 1
+                self.ip = func_addr + 1
                 continue
 
-            # Function return
+            # RETURN
             elif op == OpCode.RETURN:
                 ret_val = self.stack.pop() if self.stack else 0
 
@@ -104,7 +113,7 @@ class VirtualMachine:
                 self.stack.append(ret_val)
                 continue
 
-            # ---------------- HALT ----------------
+            # ================= HALT =================
             elif op == OpCode.HALT:
                 break
 
@@ -112,4 +121,3 @@ class VirtualMachine:
                 raise Exception(f"Unknown opcode: {op}")
 
             self.ip += 1
-

@@ -1,0 +1,6 @@
+fn add(a, b) {
+    return a + b;
+}
+
+let result = add(5, 7);
+print(result);

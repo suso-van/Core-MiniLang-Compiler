@@ -9,154 +9,147 @@ class Compiler:
         self.functions = {}
 
     # --------------------------------------------------
-    # Emit instruction
+    # Emit helper
     # --------------------------------------------------
     def emit(self, opcode, operand=None):
         self.instructions.append(Instruction(opcode, operand))
 
     # --------------------------------------------------
-    # Main compile dispatcher
+    # Compile dispatcher
     # --------------------------------------------------
     def compile(self, node):
 
-        # ================= Program =================
+        # ================= PROGRAM =================
         if isinstance(node, Program):
             for stmt in node.statements:
                 self.compile(stmt)
             self.emit(OpCode.HALT)
 
-        # ================= Let =================
+        # ================= LET =================
         elif isinstance(node, LetStatement):
             self.compile(node.value)
             self.emit(OpCode.STORE_VAR, node.name)
 
-        # ================= Assign =================
+        # ================= ASSIGN =================
         elif isinstance(node, AssignStatement):
             self.compile(node.value)
             self.emit(OpCode.STORE_VAR, node.name)
 
-        # ================= Print =================
+        # ================= PRINT =================
         elif isinstance(node, PrintStatement):
             self.compile(node.expression)
             self.emit(OpCode.PRINT)
 
-        # ================= Number =================
+        # ================= NUMBER =================
         elif isinstance(node, Number):
             self.emit(OpCode.PUSH_CONST, node.value)
 
-        # ================= Identifier =================
+        # ================= IDENTIFIER =================
         elif isinstance(node, Identifier):
             self.emit(OpCode.LOAD_VAR, node.name)
 
-        # ================= Binary Operation =================
+        # ================= BINARY =================
         elif isinstance(node, BinaryOp):
             self.compile(node.left)
             self.compile(node.right)
 
-            op = node.op.type
-
-            if op == TokenType.PLUS:
+            t = node.op.type
+            if t == TokenType.PLUS:
                 self.emit(OpCode.ADD)
-            elif op == TokenType.MINUS:
+            elif t == TokenType.MINUS:
                 self.emit(OpCode.SUB)
-            elif op == TokenType.MUL:
+            elif t == TokenType.MUL:
                 self.emit(OpCode.MUL)
-            elif op == TokenType.DIV:
+            elif t == TokenType.DIV:
                 self.emit(OpCode.DIV)
-            elif op == TokenType.LT:
+            elif t == TokenType.LT:
                 self.emit(OpCode.LT)
-            elif op == TokenType.GT:
+            elif t == TokenType.GT:
                 self.emit(OpCode.GT)
-            elif op == TokenType.EQ:
+            elif t == TokenType.EQ:
                 self.emit(OpCode.EQ)
             else:
-                raise Exception(f"Unsupported operator: {op}")
+                raise Exception("Unsupported binary operator")
 
-        # ================= If =================
+        # ================= BLOCK =================
+        elif isinstance(node, Block):
+            for stmt in node.statements:
+                self.compile(stmt)
+
+        # ================= IF =================
         elif isinstance(node, IfStatement):
             self.compile(node.condition)
 
-            jump_false_pos = len(self.instructions)
+            jf = len(self.instructions)
             self.emit(OpCode.JUMP_IF_FALSE, None)
 
             self.compile(node.then_branch)
 
             if node.else_branch:
-                jump_end_pos = len(self.instructions)
+                je = len(self.instructions)
                 self.emit(OpCode.JUMP, None)
 
-                # patch false jump → else
-                self.instructions[jump_false_pos].operand = len(self.instructions)
+                self.instructions[jf].operand = len(self.instructions)
                 self.compile(node.else_branch)
-
-                # patch end jump → after else
-                self.instructions[jump_end_pos].operand = len(self.instructions)
+                self.instructions[je].operand = len(self.instructions)
             else:
-                self.instructions[jump_false_pos].operand = len(self.instructions)
+                self.instructions[jf].operand = len(self.instructions)
 
-        # ================= Block =================
-        elif isinstance(node, Block):
-            for stmt in node.statements:
-                self.compile(stmt)
-
-        # ================= While =================
+        # ================= WHILE =================
         elif isinstance(node, WhileStatement):
-            loop_start = len(self.instructions)
-
+            start = len(self.instructions)
             self.compile(node.condition)
 
-            jump_false_pos = len(self.instructions)
+            jf = len(self.instructions)
             self.emit(OpCode.JUMP_IF_FALSE, None)
 
             self.compile(node.body)
-            self.emit(OpCode.JUMP, loop_start)
+            self.emit(OpCode.JUMP, start)
 
-            # patch false jump → after loop
-            self.instructions[jump_false_pos].operand = len(self.instructions)
+            self.instructions[jf].operand = len(self.instructions)
 
-        # ================= Function Definition =================
+        # ================= FUNCTION DEF =================
         elif isinstance(node, FunctionDef):
-            func_start = len(self.instructions)
-            self.functions[node.name] = func_start
+            func_entry = len(self.instructions)
+            self.functions[node.name] = func_entry
 
-            # mark function entry
+            # Skip function body in normal execution
             self.emit(OpCode.FUNC_START, None)
 
-            # store parameters (pop from stack)
+            # Bind parameters (pop args into variables)
             for param in reversed(node.params):
                 self.emit(OpCode.STORE_VAR, param)
 
-            for stmt in node.body.statements:
-                self.compile(stmt)
+            # Compile body
+            self.compile(node.body)
 
-            # default return 0
+            # Default return 0 if no explicit return
             self.emit(OpCode.PUSH_CONST, 0)
             self.emit(OpCode.RETURN)
 
-            # patch FUNC_START skip address
-            self.instructions[func_start].operand = len(self.instructions)
+            # Patch skip address
+            self.instructions[func_entry].operand = len(self.instructions)
 
-        # ================= Return =================
+        # ================= RETURN =================
         elif isinstance(node, ReturnStatement):
             self.compile(node.value)
             self.emit(OpCode.RETURN)
 
-        # ================= Function Call =================
+        # ================= CALL =================
         elif isinstance(node, CallExpression):
-            # push args
-            for arg in node.args:
-                self.compile(arg)
-
             if node.name not in self.functions:
                 raise Exception(f"Undefined function: {node.name}")
 
-            # jump to FUNC_START
-            self.emit(OpCode.CALL, self.functions[node.name])
+            # Push arguments
+            for arg in node.args:
+                self.compile(arg)
 
-        # ================= Unknown =================
+            func_addr = self.functions[node.name]
+            argc = len(node.args)
+
+            self.emit(OpCode.CALL, (func_addr, argc))
+
         else:
             raise Exception(f"Unknown AST node: {type(node)}")
 
         return self.instructions
-
-

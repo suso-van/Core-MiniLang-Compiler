@@ -155,3 +155,61 @@ print(result);
 
 run(code_func, "FUNCTION CALL")
 
+print("\n===== RECURSION TEST =====")
+
+code_rec = """
+fn fact(n) {
+    if (n == 0) { return 1; }
+    return n * fact(n - 1);
+}
+
+print(fact(5));
+"""
+
+run(code_rec, "RECURSION")
+
+from minilang.lexer.lexer import Lexer
+from minilang.parser.parser import Parser
+from minilang.parser.ast_printer import ASTPrinter
+from minilang.compiler.compiler import Compiler
+from minilang.compiler.optimizer import Optimizer
+from minilang.vm.vm import VirtualMachine
+from minilang.semantic.semantic_analyzer import SemanticAnalyzer
+
+
+def run(code, title):
+    print(f"\n===== {title} =====")
+
+    lexer = Lexer(code)
+    parser = Parser(lexer)
+    ast = parser.parse()
+
+    optimizer = Optimizer()
+    ast = optimizer.optimize(ast)
+
+    semantic = SemanticAnalyzer()
+    semantic.analyze(ast)
+
+    compiler = Compiler()
+    bytecode = compiler.compile(ast)
+
+    vm = VirtualMachine(bytecode)
+    vm.run()
+
+
+# ---------- BASIC ----------
+run("""
+let x = 5;
+let y = 10;
+print(x + y);
+""", "BASIC")
+
+# ---------- RECURSION ----------
+run("""
+fn fact(n) {
+    if (n == 0) { return 1; }
+    return n * fact(n - 1);
+}
+print(fact(5));
+""", "RECURSION")
+

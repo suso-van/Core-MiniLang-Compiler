@@ -3,71 +3,80 @@ from .ast import *
 
 class ASTPrinter:
     def print(self, node, indent=0):
-        prefix = "  " * indent
+        space = "  " * indent
 
-        # ---------------- Program ----------------
+        # ================= PROGRAM =================
         if isinstance(node, Program):
-            print(prefix + "Program")
+            print(f"{space}Program")
             for stmt in node.statements:
                 self.print(stmt, indent + 1)
 
-        # ---------------- LetStatement ----------------
+        # ================= LET =================
         elif isinstance(node, LetStatement):
-            print(prefix + f"LetStatement: {node.name}")
+            print(f"{space}LetStatement: {node.name}")
             self.print(node.value, indent + 1)
 
-        # ---------------- PrintStatement ----------------
+        # ================= ASSIGN =================
+        elif isinstance(node, AssignStatement):
+            print(f"{space}AssignStatement: {node.name}")
+            self.print(node.value, indent + 1)
+
+        # ================= PRINT =================
         elif isinstance(node, PrintStatement):
-            print(prefix + "PrintStatement")
+            print(f"{space}PrintStatement")
             self.print(node.expression, indent + 1)
 
-        # ---------------- Number ----------------
+        # ================= NUMBER =================
         elif isinstance(node, Number):
-            print(prefix + f"Number: {node.value}")
+            print(f"{space}Number: {node.value}")
 
-        # ---------------- Identifier ----------------
+        # ================= IDENTIFIER =================
         elif isinstance(node, Identifier):
-            print(prefix + f"Identifier: {node.name}")
+            print(f"{space}Identifier: {node.name}")
 
-        # ---------------- BinaryOp ----------------
+        # ================= BINARY =================
         elif isinstance(node, BinaryOp):
-            print(prefix + f"BinaryOp: {node.op.type.name}")
+            print(f"{space}BinaryOp: {node.op.type.name}")
             self.print(node.left, indent + 1)
             self.print(node.right, indent + 1)
 
-        # ---------------- If ----------------
+        # ================= BLOCK =================
+        elif isinstance(node, Block):
+            print(f"{space}Block")
+            for stmt in node.statements:
+                self.print(stmt, indent + 1)
+
+        # ================= IF =================
         elif isinstance(node, IfStatement):
-            print(prefix + "If")
+            print(f"{space}If")
             self.print(node.condition, indent + 1)
             self.print(node.then_branch, indent + 1)
             if node.else_branch:
                 self.print(node.else_branch, indent + 1)
 
-        # ---------------- While ----------------
+        # ================= WHILE =================
         elif isinstance(node, WhileStatement):
-            print(prefix + "While")
+            print(f"{space}While")
             self.print(node.condition, indent + 1)
             self.print(node.body, indent + 1)
 
-        # ---------------- Block ----------------
-        elif isinstance(node, Block):
-            print(prefix + "Block")
-            for stmt in node.statements:
-                self.print(stmt, indent + 1)
-        # ---------------- AssignStatement ----------------
-        elif isinstance(node, AssignStatement):
-            print(prefix + f"AssignStatement: {node.name}")
-            self.print(node.value, indent + 1)
-            
+        # ================= FUNCTION DEF =================
         elif isinstance(node, FunctionDef):
-            print(prefix + f"FunctionDef: {node.name}({', '.join(node.params)})")
+            params = ", ".join(node.params)
+            print(f"{space}FunctionDef: {node.name}({params})")
             self.print(node.body, indent + 1)
 
-        elif isinstance(node, CallExpression):
-            print(prefix + f"Call: {node.name}")
-            for arg in node.args:
-               self.print(arg, indent + 1)
+        # ================= RETURN =================
+        elif isinstance(node, ReturnStatement):
+            print(f"{space}Return")
+            self.print(node.value, indent + 1)
 
-        # ---------------- Unknown ----------------
+        # ================= CALL =================
+        elif isinstance(node, CallExpression):
+            print(f"{space}Call: {node.name}")
+            for arg in node.args:
+                self.print(arg, indent + 1)
+
+        # ================= UNKNOWN =================
         else:
-            print(prefix + f"Unknown node: {type(node)}")
+            print(f"{space}Unknown node: {type(node)}")
